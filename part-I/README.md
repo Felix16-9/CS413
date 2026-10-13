@@ -6,7 +6,25 @@ Written in Python 3. Nothing to install and nothing to compile. Task B uses `hea
 
 ## Running it
 
-From this folder:
+From this folder, type deliveries yourself:
+
+```bash
+python3 run.py
+```
+
+It asks for one delivery per line. These all work:
+
+```text
+D1 1 3
+1 3
+(1, 3)
+D2 4-7
+D3, 5, 9
+```
+
+A blank line, `done`, or `q` finishes. If a line is bad, it tells you and you can type the next one. You can also put several deliveries on one line with `;`.
+
+To use a file instead:
 
 ```bash
 python3 run.py data/sample_deliveries.txt
@@ -43,6 +61,8 @@ id start finish
 ```
 
 Times are integers and start has to be less than finish. If a delivery ends at time t, the same driver can start another one at t. Blank lines are skipped, and so are lines that start with `#`.
+
+Typing it in works the same way. An id is optional (`1 3` becomes D1, D2, and so on). Commas, parentheses, and `start-finish` are fine. Several deliveries can go on one line if you separate them with `;`.
 
 The sample from the handout is `data/sample_deliveries.txt`:
 

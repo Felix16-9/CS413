@@ -1,7 +1,8 @@
-"""Read a delivery file and answer the Part I scheduling questions.
+"""Read deliveries and answer the Part I scheduling questions.
 
 Examples, from this directory:
 
+    python3 run.py
     python3 run.py data/sample_deliveries.txt
     python3 run.py --task a data/sample_deliveries.txt
     python3 run.py --required
@@ -11,7 +12,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from delivery import load_deliveries
+from delivery import _next_id, _pieces, load_deliveries, parse_delivery_line, parse_deliveries
 from task_a import select_maximum_deliveries
 from task_b import assign_minimum_drivers
 from task_c import minimum_rejections
@@ -95,6 +96,57 @@ def run_required_cases(root: Path) -> int:
     return exit_code
 
 
+def prompt_deliveries(input_func=input, output=print) -> list:
+    """Ask for deliveries until a blank line, 'done', or 'q'.
+
+    A bad line is reported and ignored so the user can keep typing.
+    """
+    output("Enter deliveries, one per line. Any of these are fine:")
+    output("  D1 1 3")
+    output("  1 3")
+    output("  (1, 3)")
+    output("  D2 4-7")
+    output("Blank line, done, or q when you are finished.")
+    deliveries = []
+    seen = set()
+    while True:
+        try:
+            raw = input_func("> ")
+        except EOFError:
+            output("")
+            break
+        text = raw.strip()
+        if text == "" or text.lower() in {"done", "q", "quit"}:
+            break
+        added = False
+        for piece in _pieces(raw):
+            try:
+                delivery = parse_delivery_line(piece, _next_id(seen))
+            except ValueError as exc:
+                output(str(exc))
+                continue
+            if delivery is None:
+                continue
+            if delivery.id in seen:
+                output(f"{delivery.id} is already used. Type a different id.")
+                continue
+            seen.add(delivery.id)
+            deliveries.append(delivery)
+            added = True
+        if added:
+            output(f"  kept {len(deliveries)} so far")
+    return deliveries
+
+
+def read_deliveries(file_path, input_func=input, output=print) -> list:
+    """Load a file, stdin, or an interactive prompt."""
+    if file_path:
+        return load_deliveries(file_path)
+    if not sys.stdin.isatty():
+        return parse_deliveries(sys.stdin)
+    return prompt_deliveries(input_func=input_func, output=output)
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Pioneer Delivery Part I: greedy scheduling."
@@ -102,7 +154,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "file",
         nargs="?",
-        help="delivery request file (id, start time, finish time)",
+        help="delivery file. Leave this off to type deliveries yourself.",
     )
     parser.add_argument(
         "--task",
@@ -124,9 +176,11 @@ def main(argv=None) -> int:
     root = Path(__file__).resolve().parent
     if args.required:
         return run_required_cases(root)
-    if not args.file:
-        parser.error("give a delivery file, or pass --required")
-    deliveries = load_deliveries(args.file)
+    try:
+        deliveries = read_deliveries(args.file)
+    except (OSError, ValueError) as exc:
+        print(exc, file=sys.stderr)
+        return 1
     print(report(deliveries, args.task))
     return 0
 

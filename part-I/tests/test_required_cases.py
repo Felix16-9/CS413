@@ -9,7 +9,8 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from delivery import Delivery, load_deliveries
+from delivery import Delivery, load_deliveries, parse_deliveries
+from run import prompt_deliveries
 from task_a import count_maximum_deliveries, select_maximum_deliveries
 from task_b import assign_minimum_drivers, minimum_drivers
 from task_c import count_minimum_rejections, minimum_rejections
@@ -134,6 +135,58 @@ class SampleFileTests(unittest.TestCase):
         _assert_compatible(self, select_maximum_deliveries(deliveries))
         for jobs in assign_minimum_drivers(deliveries):
             _assert_compatible(self, jobs)
+
+
+class UserInputTests(unittest.TestCase):
+    def test_common_ways_of_typing_a_delivery(self):
+        text = "\n".join(
+            [
+                "D1 1 3",
+                "4 8",
+                "(10, 12)",
+                "D4, 2, 6",
+                "D5 1-4",
+                "7-9",
+                "D7 -5 -1",
+                "D1 1 3; D8 9 10",
+            ]
+        )
+        # the last line repeats D1, so the file parser rejects it
+        with self.assertRaises(ValueError):
+            parse_deliveries(text.splitlines())
+
+        lines = [
+            "nope",
+            "1 5",
+            "D1 1 3",
+            "(4, 8)",
+            "D5 1-4",
+            "7-9",
+            "D7 -5 -1",
+            "9 12; 13 15",
+            "done",
+        ]
+        typed = iter(lines)
+
+        def fake_input(_prompt):
+            return next(typed)
+
+        messages = []
+        deliveries = prompt_deliveries(input_func=fake_input, output=messages.append)
+        self.assertEqual(
+            [(item.id, item.start, item.finish) for item in deliveries],
+            [
+                ("D1", 1, 5),
+                ("D2", 4, 8),
+                ("D5", 1, 4),
+                ("D3", 7, 9),
+                ("D7", -5, -1),
+                ("D4", 9, 12),
+                ("D6", 13, 15),
+            ],
+        )
+        self.assertTrue(any("could not read" in message for message in messages))
+        self.assertTrue(any("already used" in message for message in messages))
 
 
 if __name__ == "__main__":
