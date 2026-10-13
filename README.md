@@ -1,5 +1,5 @@
 # CS413
 
-Pioneer Delivery Algorithm Portfolio for CS 413, Analysis of Algorithms.
+CS 413 homework.
 
 - [Part I: Greedy Algorithms](part-I/README.md)
